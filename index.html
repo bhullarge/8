@@ -3,41 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>h ਵਾਕੀ-ਟਾਕੀ (Auto-Connect)</title>
+    <title>i ਵਾਕੀ-ਟਾਕੀ Pro</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #1e293b; padding: 30px; border-radius: 25px; width: 320px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.6); border: 1px solid #334155; }
+        body { font-family: sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #1e293b; padding: 30px; border-radius: 25px; width: 320px; text-align: center; border: 1px solid #334155; }
         .btn-main { background: #22c55e; color: white; padding: 18px; border: none; border-radius: 15px; font-size: 18px; cursor: pointer; width: 100%; font-weight: bold; }
         .controls { display: none; justify-content: space-around; margin-top: 25px; }
         .round-btn { width: 85px; height: 85px; border-radius: 50%; border: none; cursor: pointer; font-size: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.3s; }
         .on { background: #22c55e; color: white; box-shadow: 0 0 15px rgba(34, 197, 94, 0.5); }
         .off { background: #ef4444; color: white; }
-        .label { font-size: 11px; margin-top: 5px; }
-        #status { color: #94a3b8; font-size: 13px; margin-top: 20px; min-height: 40px; }
+        #status { color: #fbbf24; font-size: 14px; margin-top: 20px; min-height: 40px; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div id="setup-ui">
-        <h2>🎙️ ਲਾਈਵ ਵਾਕੀ-ਟਾਕੀ</h2>
-        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">ਕਨੈਕਟ ਹੋਣ ਲਈ ਹੇਠਾਂ ਦਬਾਓ</p>
+        <h2>🎙️ ਵਾਕੀ-ਟਾਕੀ</h2>
         <button class="btn-main" onclick="startWalkieTalkie()">ਵਾਕੀ-ਟਾਕੀ ਸ਼ੁਰੂ ਕਰੋ</button>
     </div>
 
     <div id="main-ui" class="controls">
-        <button id="micBtn" class="round-btn on" onclick="toggleMic()">🎙️<span class="label">ਮਾਈਕ ON</span></button>
-        <button id="spkBtn" class="round-btn off" onclick="toggleSpeaker()">🔈<span class="label">ਸਪੀਕਰ OFF</span></button>
+        <button id="micBtn" class="round-btn on" onclick="toggleMic()">🎙️</button>
+        <button id="spkBtn" class="round-btn off" onclick="toggleSpeaker()">🔈</button>
     </div>
     <div id="status">ਸਿਸਟਮ ਤਿਆਰ ਹੈ...</div>
 </div>
 
 <script>
-    // 1. Ably Setup (IDs ਸਾਂਝੀਆਂ ਕਰਨ ਲਈ)
-    const ably = new Ably.Realtime('rNf9_w.p9L13g:v-I8S68s75yGscR7Oid6S0mF4y1-pX8I6z6-q5I1v9A'); // ਮੁਫ਼ਤ ਟੈਸਟ ਕੀਅ
-    const channel = ably.channels.get('walkie-talkie-room');
+    // Ably Key (ਤੁਸੀਂ ਆਪਣੀ ਵੀ ਵਰਤ ਸਕਦੇ ਹੋ, ਇਹ ਟੈਸਟਿੰਗ ਲਈ ਹੈ)
+    const ably = new Ably.Realtime('rNf9_w.p9L13g:v-I8S68s75yGscR7Oid6S0mF4y1-pX8I6z6-q5I1v9A');
+    const channel = ably.channels.get('walkie-talkie-v1');
 
     let peer = new Peer();
     let myStream;
@@ -48,30 +46,32 @@
             myStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             document.getElementById('setup-ui').style.display = 'none';
             document.getElementById('main-ui').style.display = 'flex';
-            document.getElementById('status').innerText = "ਦੋਸਤ ਨੂੰ ਲੱਭ ਰਿਹਾ ਹਾਂ...";
+            
+            // ਹਰ 3 ਸੈਕਿੰਡ ਬਾਅਦ ਆਪਣੀ ਮੌਜੂਦਗੀ ਦੱਸੋ (Heartbeat)
+            setInterval(() => {
+                if(peer.id) {
+                    channel.publish('presence', { id: peer.id });
+                }
+            }, 3000);
 
-            // ਜਦੋਂ ਸਾਡੀ ਆਪਣੀ ID ਤਿਆਰ ਹੋ ਜਾਵੇ, ਤਾਂ ਸਾਰਿਆਂ ਨੂੰ ਦੱਸੋ
-            peer.on('open', (id) => {
-                channel.publish('new-user', { id: id });
-            });
-
-            // ਜਦੋਂ ਕੋਈ ਹੋਰ ਦੋਸਤ ਆਪਣੀ ID ਭੇਜੇ, ਉਸਨੂੰ ਕਾਲ ਕਰੋ
-            channel.subscribe('new-user', (message) => {
-                if (message.data.id !== peer.id) {
+            // ਦੂਜਿਆਂ ਦੀ ID ਸੁਣੋ
+            channel.subscribe('presence', (msg) => {
+                if (msg.data.id !== peer.id) {
                     document.getElementById('status').innerText = "ਦੋਸਤ ਮਿਲ ਗਿਆ! ਕਨੈਕਟ ਕਰ ਰਿਹਾ ਹਾਂ...";
-                    const call = peer.call(message.data.id, myStream);
-                    call.on('stream', (remoteStream) => playRemote(remoteStream));
+                    peer.call(msg.data.id, myStream).on('stream', playRemote);
                 }
             });
 
             // ਜਦੋਂ ਸਾਨੂੰ ਕਾਲ ਆਵੇ
             peer.on('call', (call) => {
                 call.answer(myStream);
-                call.on('stream', (remoteStream) => playRemote(remoteStream));
+                call.on('stream', playRemote);
             });
 
+            document.getElementById('status').innerText = "ਦੋਸਤ ਦੀ ਉਡੀਕ ਕਰ ਰਿਹਾ ਹਾਂ...";
+
         } catch (err) {
-            alert("ਮਾਈਕ੍ਰੋਫੋਨ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ ਮਿਲੀ!");
+            alert("ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਦਿਓ!");
         }
     }
 
@@ -85,24 +85,22 @@
         audio.srcObject = stream;
         audio.autoplay = true;
         audio.muted = !spkActive;
-        document.getElementById('status').innerText = "ਕਨੈਕਟ ਹੋ ਗਏ ਹੋ! ਹੁਣ ਸਪੀਕਰ ਚਾਲੂ ਕਰੋ।";
+        document.getElementById('status').innerText = "ਕਨੈਕਟ ਹੋ ਗਏ ਹੋ! ਸਪੀਕਰ ਚਾਲੂ ਕਰੋ।";
+        document.getElementById('status').style.color = "#22c55e";
     }
 
     function toggleMic() {
         myStream.getAudioTracks()[0].enabled = !myStream.getAudioTracks()[0].enabled;
         const btn = document.getElementById('micBtn');
-        const isActive = myStream.getAudioTracks()[0].enabled;
-        btn.className = isActive ? 'round-btn on' : 'round-btn off';
-        btn.innerHTML = isActive ? '🎙️<span class="label">ਮਾਈਕ ON</span>' : '🔇<span class="label">ਮਾਈਕ OFF</span>';
+        btn.className = myStream.getAudioTracks()[0].enabled ? 'round-btn on' : 'round-btn off';
     }
 
     function toggleSpeaker() {
         spkActive = !spkActive;
         const audio = document.getElementById("remoteAudio");
         if (audio) audio.muted = !spkActive;
-        const btn = document.getElementById('spkBtn');
-        btn.className = spkActive ? 'round-btn on' : 'round-btn off';
-        btn.innerHTML = spkActive ? '🔊<span class="label">ਸਪੀਕਰ ON</span>' : '🔈<span class="label">ਸਪੀਕਰ OFF</span>';
+        document.getElementById('spkBtn').className = spkActive ? 'round-btn on' : 'round-btn off';
+        document.getElementById('spkBtn').innerText = spkActive ? '🔊' : '🔈';
     }
 </script>
 </body>
