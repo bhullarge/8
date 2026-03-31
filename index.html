@@ -3,40 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> ਵਾਕੀ-ਟਾਕੀ - ਕਲੀਨ ਵਰਜ਼ਨ</title>
+    <title> ਵਾਕੀ-ਟਾਕੀ ਮੋਬਾਈਲ</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        body { font-family: sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
         .card { background: #1e293b; padding: 30px; border-radius: 25px; text-align: center; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #334155; }
-        .controls { display: flex; justify-content: center; gap: 20px; margin-top: 30px; }
-        .btn { width: 85px; height: 85px; border-radius: 50%; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .controls { display: flex; justify-content: center; gap: 20px; margin-top: 25px; }
+        .btn { width: 80px; height: 80px; border-radius: 50%; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; transition: 0.3s; }
         .btn-on { background: #22c55e; color: white; }
         .btn-off { background: #ef4444; color: white; }
-        .label { font-size: 12px; margin-top: 5px; font-weight: bold; }
-        .status { margin-top: 25px; font-size: 14px; color: #94a3b8; border-top: 1px solid #334155; padding-top: 15px; }
-        #connection-status { font-size: 14px; color: #fbbf24; margin-bottom: 10px; }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .start-btn { padding: 20px 40px; font-size: 20px; background: #22c55e; border: none; color: white; border-radius: 50px; cursor: pointer; box-shadow: 0 5px 15px rgba(34, 197, 94, 0.4); }
+        .status-info { font-size: 14px; margin-top: 20px; color: #94a3b8; }
     </style>
 </head>
 <body>
 
+<div id="start-screen">
+    <button class="start-btn" onclick="startApp()">ਵਾਕੀ-ਟਾਕੀ ਸ਼ੁਰੂ ਕਰੋ</button>
+</div>
+
 <div class="card">
     <h2>🎙️ ਵਾਕੀ-ਟਾਕੀ</h2>
-    <div id="connection-status">ਸਿਸਟਮ ਸ਼ੁਰੂ ਹੋ ਰਿਹਾ ਹੈ...</div>
+    <div id="connection-status" style="color: #fbbf24;">ਕਨੈਕਟ ਹੋ ਰਿਹਾ ਹੈ...</div>
 
     <div class="controls">
         <button id="micBtn" class="btn btn-on" onclick="toggleMic()">
-            <span style="font-size: 30px;">🎙️</span>
-            <span class="label">ਮਾਈਕ</span>
+            <span style="font-size: 24px;">🎙️</span>
+            <span style="font-size: 10px;">ਮਾਈਕ ਚਾਲੂ</span>
         </button>
         
-        <button id="spkBtn" class="btn btn-on" onclick="toggleSpeaker()">
-            <span style="font-size: 30px;">🔊</span>
-            <span class="label">ਸਪੀਕਰ</span>
+        <button id="spkBtn" class="btn btn-off" onclick="toggleSpeaker()">
+            <span style="font-size: 24px;">🔈</span>
+            <span style="font-size: 10px;">ਸਪੀਕਰ ਬੰਦ</span>
         </button>
     </div>
     
-    <div class="status">
-        ਤੁਹਾਡੀ ID: <span id="my-id" style="color:#22c55e;">ਲੋਡ ਹੋ ਰਿਹਾ...</span>
+    <div class="status-info">
+        ਤੁਹਾਡੀ ID: <span id="my-id" style="color:#22c55e;">...</span>
     </div>
 </div>
 
@@ -44,20 +48,17 @@
     let peer = new Peer();
     let myStream;
     let micEnabled = true;
-    let spkEnabled = true;
+    let spkEnabled = false; // ਸਪੀਕਰ ਬਾਈ-ਡਿਫਾਲਟ ਬੰਦ
 
-    async function init() {
+    async function startApp() {
+        document.getElementById('start-screen').style.display = 'none';
+        
         try {
-            // Echo Cancellation ਅਤੇ Noise Suppression ਦੀ ਵਰਤੋਂ
+            // ਮਾਈਕ੍ਰੋਫੋਨ ਦੀ ਇਜਾਜ਼ਤ ਮੰਗਣਾ
             myStream = await navigator.mediaDevices.getUserMedia({ 
-                audio: { 
-                    echoCancellation: true, 
-                    noiseSuppression: true,
-                    autoGainControl: true
-                } 
+                audio: { echoCancellation: true, noiseSuppression: true } 
             });
 
-            // ਮਹੱਤਵਪੂਰਨ: ਆਪਣੀ ਆਵਾਜ਼ ਨੂੰ ਆਪਣੇ ਸਪੀਕਰ ਵਿੱਚ ਨਾ ਚਲਾਓ (ਇਸ ਨਾਲ ਬੀਪ ਬੰਦ ਹੋ ਜਾਵੇਗੀ)
             document.getElementById('connection-status').innerText = "Online - Ready";
             document.getElementById('connection-status').style.color = "#22c55e";
 
@@ -69,12 +70,11 @@
             });
 
         } catch (err) {
-            document.getElementById('connection-status').innerText = "ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਦਿਓ";
-            document.getElementById('connection-status').style.color = "#ef4444";
+            alert("ਮੋਬਾਈਲ ਸੈਟਿੰਗ ਵਿੱਚ ਜਾ ਕੇ ਮਾਈਕ੍ਰੋਫੋਨ ਦੀ ਇਜਾਜ਼ਤ ਦਿਓ!");
+            console.error(err);
         }
     }
 
-    // ਸਿਰਫ਼ ਦੂਜੇ ਦੋਸਤ ਦੀ ਆਵਾਜ਼ ਚਲਾਉਣ ਲਈ
     function playRemote(stream) {
         let audio = document.getElementById("remoteAudio");
         if (!audio) {
@@ -84,35 +84,31 @@
         }
         audio.srcObject = stream;
         audio.autoplay = true;
-        audio.muted = !spkEnabled; // ਸਪੀਕਰ ਬਟਨ ਮੁਤਾਬਕ ਆਵਾਜ਼ ਕੰਟਰੋਲ
+        audio.muted = !spkEnabled; // ਸਪੀਕਰ ਦੀ ਸੈਟਿੰਗ ਲਾਗੂ ਹੋਵੇਗੀ
     }
 
     function toggleMic() {
         micEnabled = !micEnabled;
-        if (myStream) {
-            myStream.getAudioTracks()[0].enabled = micEnabled;
-        }
+        if (myStream) myStream.getAudioTracks()[0].enabled = micEnabled;
         const btn = document.getElementById('micBtn');
         btn.className = micEnabled ? 'btn btn-on' : 'btn btn-off';
         btn.querySelector('span').innerText = micEnabled ? '🎙️' : '🔇';
+        btn.querySelectorAll('span')[1].innerText = micEnabled ? 'ਮਾਈਕ ਚਾਲੂ' : 'ਮਾਈਕ ਬੰਦ';
     }
 
     function toggleSpeaker() {
         spkEnabled = !spkEnabled;
         const remoteAudio = document.getElementById("remoteAudio");
-        if (remoteAudio) {
-            remoteAudio.muted = !spkEnabled;
-        }
+        if (remoteAudio) remoteAudio.muted = !spkEnabled;
         const btn = document.getElementById('spkBtn');
         btn.className = spkEnabled ? 'btn btn-on' : 'btn btn-off';
         btn.querySelector('span').innerText = spkEnabled ? '🔊' : '🔈';
+        btn.querySelectorAll('span')[1].innerText = spkEnabled ? 'ਸਪੀਕਰ ਚਾਲੂ' : 'ਸਪੀਕਰ ਬੰਦ';
     }
 
     peer.on('open', (id) => {
         document.getElementById('my-id').innerText = id;
     });
-
-    window.onload = init;
 </script>
 </body>
 </html>
