@@ -3,21 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> gਆਟੋ ਵਾਕੀ-ਟਾਕੀ</title>
+    <title>h ਵਾਕੀ-ਟਾਕੀ (Auto-Connect)</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-
+    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #1e293b; padding: 30px; border-radius: 30px; width: 320px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
-        .btn-start { background: #22c55e; color: white; padding: 20px; border: none; border-radius: 15px; font-size: 18px; cursor: pointer; width: 100%; margin-bottom: 10px; }
+        .card { background: #1e293b; padding: 30px; border-radius: 25px; width: 320px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.6); border: 1px solid #334155; }
+        .btn-main { background: #22c55e; color: white; padding: 18px; border: none; border-radius: 15px; font-size: 18px; cursor: pointer; width: 100%; font-weight: bold; }
         .controls { display: none; justify-content: space-around; margin-top: 25px; }
         .round-btn { width: 85px; height: 85px; border-radius: 50%; border: none; cursor: pointer; font-size: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.3s; }
-        .on { background: #22c55e; color: white; box-shadow: 0 0 15px #22c55e; }
+        .on { background: #22c55e; color: white; box-shadow: 0 0 15px rgba(34, 197, 94, 0.5); }
         .off { background: #ef4444; color: white; }
-        .label { font-size: 11px; margin-top: 5px; font-weight: bold; }
-        #status { color: #94a3b8; font-size: 13px; margin-top: 20px; font-style: italic; }
+        .label { font-size: 11px; margin-top: 5px; }
+        #status { color: #94a3b8; font-size: 13px; margin-top: 20px; min-height: 40px; }
     </style>
 </head>
 <body>
@@ -25,73 +23,59 @@
 <div class="card">
     <div id="setup-ui">
         <h2>🎙️ ਲਾਈਵ ਵਾਕੀ-ਟਾਕੀ</h2>
-        <p style="color: #94a3b8; font-size: 14px;">ਸਕ੍ਰੀਨ 'ਤੇ ਕਲਿੱਕ ਕਰਕੇ ਸ਼ੁਰੂ ਕਰੋ</p>
-        <button class="btn-start" onclick="connectNow()">ਸ਼ੁਰੂ ਕਰੋ</button>
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">ਕਨੈਕਟ ਹੋਣ ਲਈ ਹੇਠਾਂ ਦਬਾਓ</p>
+        <button class="btn-main" onclick="startWalkieTalkie()">ਵਾਕੀ-ਟਾਕੀ ਸ਼ੁਰੂ ਕਰੋ</button>
     </div>
 
     <div id="main-ui" class="controls">
-        <button id="micBtn" class="round-btn on" onclick="toggleMic()">
-            <span>🎙️</span>
-            <span class="label">ਮਾਈਕ ON</span>
-        </button>
-        <button id="spkBtn" class="round-btn off" onclick="toggleSpeaker()">
-            <span>🔈</span>
-            <span class="label">ਸਪੀਕਰ OFF</span>
-        </button>
+        <button id="micBtn" class="round-btn on" onclick="toggleMic()">🎙️<span class="label">ਮਾਈਕ ON</span></button>
+        <button id="spkBtn" class="round-btn off" onclick="toggleSpeaker()">🔈<span class="label">ਸਪੀਕਰ OFF</span></button>
     </div>
     <div id="status">ਸਿਸਟਮ ਤਿਆਰ ਹੈ...</div>
 </div>
 
 <script>
-    // Firebase Configuration (ਮੁਫ਼ਤ ਟੈਸਟਿੰਗ ਲਈ)
-    const firebaseConfig = {
-        databaseURL: "https://walkie-talkie-test-default-rtdb.firebaseio.com/" 
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database().ref("online_users");
+    // 1. Ably Setup (IDs ਸਾਂਝੀਆਂ ਕਰਨ ਲਈ)
+    const ably = new Ably.Realtime('rNf9_w.p9L13g:v-I8S68s75yGscR7Oid6S0mF4y1-pX8I6z6-q5I1v9A'); // ਮੁਫ਼ਤ ਟੈਸਟ ਕੀਅ
+    const channel = ably.channels.get('walkie-talkie-room');
 
     let peer = new Peer();
     let myStream;
-    let micActive = true;
     let spkActive = false;
 
-    // 1. ਮਾਈਕ੍ਰੋਫੋਨ ਅਤੇ ਕਨੈਕਸ਼ਨ ਸ਼ੁਰੂ ਕਰਨਾ
-    async function connectNow() {
+    async function startWalkieTalkie() {
         try {
-            myStream = await navigator.mediaDevices.getUserMedia({ 
-                audio: { echoCancellation: true, noiseSuppression: true } 
-            });
-
+            myStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             document.getElementById('setup-ui').style.display = 'none';
             document.getElementById('main-ui').style.display = 'flex';
-            document.getElementById('status').innerText = "ਦੋਸਤਾਂ ਨੂੰ ਲੱਭ ਰਿਹਾ ਹਾਂ...";
+            document.getElementById('status').innerText = "ਦੋਸਤ ਨੂੰ ਲੱਭ ਰਿਹਾ ਹਾਂ...";
 
-            // ਦੂਜੇ ਯੂਜ਼ਰਾਂ ਨੂੰ ਲੱਭੋ ਅਤੇ ਉਹਨਾਂ ਨੂੰ ਕਾਲ ਕਰੋ
-            db.once('value', (snapshot) => {
-                snapshot.forEach((child) => {
-                    if (child.val() !== peer.id) {
-                        peer.call(child.val(), myStream).on('stream', playStream);
-                    }
-                });
+            // ਜਦੋਂ ਸਾਡੀ ਆਪਣੀ ID ਤਿਆਰ ਹੋ ਜਾਵੇ, ਤਾਂ ਸਾਰਿਆਂ ਨੂੰ ਦੱਸੋ
+            peer.on('open', (id) => {
+                channel.publish('new-user', { id: id });
             });
 
-            // ਆਪਣੀ ID ਡੇਟਾਬੇਸ ਵਿੱਚ ਪਾਓ ਤਾਂ ਜੋ ਦੂਜੇ ਤੁਹਾਨੂੰ ਲੱਭ ਸਕਣ
-            db.push(peer.id);
-            // ਜਦੋਂ ਤੁਸੀਂ ਪੇਜ ਬੰਦ ਕਰੋ ਤਾਂ ID ਹਟਾ ਦਿਓ
-            db.onDisconnect().remove();
+            // ਜਦੋਂ ਕੋਈ ਹੋਰ ਦੋਸਤ ਆਪਣੀ ID ਭੇਜੇ, ਉਸਨੂੰ ਕਾਲ ਕਰੋ
+            channel.subscribe('new-user', (message) => {
+                if (message.data.id !== peer.id) {
+                    document.getElementById('status').innerText = "ਦੋਸਤ ਮਿਲ ਗਿਆ! ਕਨੈਕਟ ਕਰ ਰਿਹਾ ਹਾਂ...";
+                    const call = peer.call(message.data.id, myStream);
+                    call.on('stream', (remoteStream) => playRemote(remoteStream));
+                }
+            });
+
+            // ਜਦੋਂ ਸਾਨੂੰ ਕਾਲ ਆਵੇ
+            peer.on('call', (call) => {
+                call.answer(myStream);
+                call.on('stream', (remoteStream) => playRemote(remoteStream));
+            });
 
         } catch (err) {
-            alert("ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਦਿਓ!");
+            alert("ਮਾਈਕ੍ਰੋਫੋਨ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ ਮਿਲੀ!");
         }
     }
 
-    // ਜਦੋਂ ਕੋਈ ਤੁਹਾਨੂੰ ਕਾਲ ਕਰੇ
-    peer.on('call', (call) => {
-        call.answer(myStream);
-        call.on('stream', playStream);
-    });
-
-    function playStream(stream) {
+    function playRemote(stream) {
         let audio = document.getElementById("remoteAudio");
         if (!audio) {
             audio = document.createElement('audio');
@@ -101,16 +85,15 @@
         audio.srcObject = stream;
         audio.autoplay = true;
         audio.muted = !spkActive;
-        document.getElementById('status').innerText = "ਕਨੈਕਟ ਹੋ ਗਏ ਹੋ!";
+        document.getElementById('status').innerText = "ਕਨੈਕਟ ਹੋ ਗਏ ਹੋ! ਹੁਣ ਸਪੀਕਰ ਚਾਲੂ ਕਰੋ।";
     }
 
     function toggleMic() {
-        micActive = !micActive;
-        myStream.getAudioTracks()[0].enabled = micActive;
+        myStream.getAudioTracks()[0].enabled = !myStream.getAudioTracks()[0].enabled;
         const btn = document.getElementById('micBtn');
-        btn.className = micActive ? 'round-btn on' : 'round-btn off';
-        btn.querySelector('span').innerText = micActive ? '🎙️' : '🔇';
-        btn.querySelector('.label').innerText = micActive ? 'ਮਾਈਕ ON' : 'ਮਾਈਕ OFF';
+        const isActive = myStream.getAudioTracks()[0].enabled;
+        btn.className = isActive ? 'round-btn on' : 'round-btn off';
+        btn.innerHTML = isActive ? '🎙️<span class="label">ਮਾਈਕ ON</span>' : '🔇<span class="label">ਮਾਈਕ OFF</span>';
     }
 
     function toggleSpeaker() {
@@ -119,8 +102,7 @@
         if (audio) audio.muted = !spkActive;
         const btn = document.getElementById('spkBtn');
         btn.className = spkActive ? 'round-btn on' : 'round-btn off';
-        btn.querySelector('span').innerText = spkActive ? '🔊' : '🔈';
-        btn.querySelector('.label').innerText = spkActive ? 'ਸਪੀਕਰ ON' : 'ਸਪੀਕਰ OFF';
+        btn.innerHTML = spkActive ? '🔊<span class="label">ਸਪੀਕਰ ON</span>' : '🔈<span class="label">ਸਪੀਕਰ OFF</span>';
     }
 </script>
 </body>
