@@ -3,79 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> ਵਾਕੀ-ਟਾਕੀ ਮੋਬਾਈਲ</title>
+    <title> gਆਟੋ ਵਾਕੀ-ਟਾਕੀ</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #1e293b; padding: 30px; border-radius: 25px; text-align: center; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #334155; }
-        .controls { display: flex; justify-content: center; gap: 20px; margin-top: 25px; }
-        .btn { width: 80px; height: 80px; border-radius: 50%; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; transition: 0.3s; }
-        .btn-on { background: #22c55e; color: white; }
-        .btn-off { background: #ef4444; color: white; }
-        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: flex; align-items: center; justify-content: center; z-index: 100; }
-        .start-btn { padding: 20px 40px; font-size: 20px; background: #22c55e; border: none; color: white; border-radius: 50px; cursor: pointer; box-shadow: 0 5px 15px rgba(34, 197, 94, 0.4); }
-        .status-info { font-size: 14px; margin-top: 20px; color: #94a3b8; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #1e293b; padding: 30px; border-radius: 30px; width: 320px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        .btn-start { background: #22c55e; color: white; padding: 20px; border: none; border-radius: 15px; font-size: 18px; cursor: pointer; width: 100%; margin-bottom: 10px; }
+        .controls { display: none; justify-content: space-around; margin-top: 25px; }
+        .round-btn { width: 85px; height: 85px; border-radius: 50%; border: none; cursor: pointer; font-size: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.3s; }
+        .on { background: #22c55e; color: white; box-shadow: 0 0 15px #22c55e; }
+        .off { background: #ef4444; color: white; }
+        .label { font-size: 11px; margin-top: 5px; font-weight: bold; }
+        #status { color: #94a3b8; font-size: 13px; margin-top: 20px; font-style: italic; }
     </style>
 </head>
 <body>
 
-<div id="start-screen">
-    <button class="start-btn" onclick="startApp()">ਵਾਕੀ-ਟਾਕੀ ਸ਼ੁਰੂ ਕਰੋ</button>
-</div>
-
 <div class="card">
-    <h2>🎙️ ਵਾਕੀ-ਟਾਕੀ</h2>
-    <div id="connection-status" style="color: #fbbf24;">ਕਨੈਕਟ ਹੋ ਰਿਹਾ ਹੈ...</div>
+    <div id="setup-ui">
+        <h2>🎙️ ਲਾਈਵ ਵਾਕੀ-ਟਾਕੀ</h2>
+        <p style="color: #94a3b8; font-size: 14px;">ਸਕ੍ਰੀਨ 'ਤੇ ਕਲਿੱਕ ਕਰਕੇ ਸ਼ੁਰੂ ਕਰੋ</p>
+        <button class="btn-start" onclick="connectNow()">ਸ਼ੁਰੂ ਕਰੋ</button>
+    </div>
 
-    <div class="controls">
-        <button id="micBtn" class="btn btn-on" onclick="toggleMic()">
-            <span style="font-size: 24px;">🎙️</span>
-            <span style="font-size: 10px;">ਮਾਈਕ ਚਾਲੂ</span>
+    <div id="main-ui" class="controls">
+        <button id="micBtn" class="round-btn on" onclick="toggleMic()">
+            <span>🎙️</span>
+            <span class="label">ਮਾਈਕ ON</span>
         </button>
-        
-        <button id="spkBtn" class="btn btn-off" onclick="toggleSpeaker()">
-            <span style="font-size: 24px;">🔈</span>
-            <span style="font-size: 10px;">ਸਪੀਕਰ ਬੰਦ</span>
+        <button id="spkBtn" class="round-btn off" onclick="toggleSpeaker()">
+            <span>🔈</span>
+            <span class="label">ਸਪੀਕਰ OFF</span>
         </button>
     </div>
-    
-    <div class="status-info">
-        ਤੁਹਾਡੀ ID: <span id="my-id" style="color:#22c55e;">...</span>
-    </div>
+    <div id="status">ਸਿਸਟਮ ਤਿਆਰ ਹੈ...</div>
 </div>
 
 <script>
+    // Firebase Configuration (ਮੁਫ਼ਤ ਟੈਸਟਿੰਗ ਲਈ)
+    const firebaseConfig = {
+        databaseURL: "https://walkie-talkie-test-default-rtdb.firebaseio.com/" 
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref("online_users");
+
     let peer = new Peer();
     let myStream;
-    let micEnabled = true;
-    let spkEnabled = false; // ਸਪੀਕਰ ਬਾਈ-ਡਿਫਾਲਟ ਬੰਦ
+    let micActive = true;
+    let spkActive = false;
 
-    async function startApp() {
-        document.getElementById('start-screen').style.display = 'none';
-        
+    // 1. ਮਾਈਕ੍ਰੋਫੋਨ ਅਤੇ ਕਨੈਕਸ਼ਨ ਸ਼ੁਰੂ ਕਰਨਾ
+    async function connectNow() {
         try {
-            // ਮਾਈਕ੍ਰੋਫੋਨ ਦੀ ਇਜਾਜ਼ਤ ਮੰਗਣਾ
             myStream = await navigator.mediaDevices.getUserMedia({ 
                 audio: { echoCancellation: true, noiseSuppression: true } 
             });
 
-            document.getElementById('connection-status').innerText = "Online - Ready";
-            document.getElementById('connection-status').style.color = "#22c55e";
+            document.getElementById('setup-ui').style.display = 'none';
+            document.getElementById('main-ui').style.display = 'flex';
+            document.getElementById('status').innerText = "ਦੋਸਤਾਂ ਨੂੰ ਲੱਭ ਰਿਹਾ ਹਾਂ...";
 
-            peer.on('call', (call) => {
-                call.answer(myStream);
-                call.on('stream', (remoteStream) => {
-                    playRemote(remoteStream);
+            // ਦੂਜੇ ਯੂਜ਼ਰਾਂ ਨੂੰ ਲੱਭੋ ਅਤੇ ਉਹਨਾਂ ਨੂੰ ਕਾਲ ਕਰੋ
+            db.once('value', (snapshot) => {
+                snapshot.forEach((child) => {
+                    if (child.val() !== peer.id) {
+                        peer.call(child.val(), myStream).on('stream', playStream);
+                    }
                 });
             });
 
+            // ਆਪਣੀ ID ਡੇਟਾਬੇਸ ਵਿੱਚ ਪਾਓ ਤਾਂ ਜੋ ਦੂਜੇ ਤੁਹਾਨੂੰ ਲੱਭ ਸਕਣ
+            db.push(peer.id);
+            // ਜਦੋਂ ਤੁਸੀਂ ਪੇਜ ਬੰਦ ਕਰੋ ਤਾਂ ID ਹਟਾ ਦਿਓ
+            db.onDisconnect().remove();
+
         } catch (err) {
-            alert("ਮੋਬਾਈਲ ਸੈਟਿੰਗ ਵਿੱਚ ਜਾ ਕੇ ਮਾਈਕ੍ਰੋਫੋਨ ਦੀ ਇਜਾਜ਼ਤ ਦਿਓ!");
-            console.error(err);
+            alert("ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਦਿਓ!");
         }
     }
 
-    function playRemote(stream) {
+    // ਜਦੋਂ ਕੋਈ ਤੁਹਾਨੂੰ ਕਾਲ ਕਰੇ
+    peer.on('call', (call) => {
+        call.answer(myStream);
+        call.on('stream', playStream);
+    });
+
+    function playStream(stream) {
         let audio = document.getElementById("remoteAudio");
         if (!audio) {
             audio = document.createElement('audio');
@@ -84,31 +100,28 @@
         }
         audio.srcObject = stream;
         audio.autoplay = true;
-        audio.muted = !spkEnabled; // ਸਪੀਕਰ ਦੀ ਸੈਟਿੰਗ ਲਾਗੂ ਹੋਵੇਗੀ
+        audio.muted = !spkActive;
+        document.getElementById('status').innerText = "ਕਨੈਕਟ ਹੋ ਗਏ ਹੋ!";
     }
 
     function toggleMic() {
-        micEnabled = !micEnabled;
-        if (myStream) myStream.getAudioTracks()[0].enabled = micEnabled;
+        micActive = !micActive;
+        myStream.getAudioTracks()[0].enabled = micActive;
         const btn = document.getElementById('micBtn');
-        btn.className = micEnabled ? 'btn btn-on' : 'btn btn-off';
-        btn.querySelector('span').innerText = micEnabled ? '🎙️' : '🔇';
-        btn.querySelectorAll('span')[1].innerText = micEnabled ? 'ਮਾਈਕ ਚਾਲੂ' : 'ਮਾਈਕ ਬੰਦ';
+        btn.className = micActive ? 'round-btn on' : 'round-btn off';
+        btn.querySelector('span').innerText = micActive ? '🎙️' : '🔇';
+        btn.querySelector('.label').innerText = micActive ? 'ਮਾਈਕ ON' : 'ਮਾਈਕ OFF';
     }
 
     function toggleSpeaker() {
-        spkEnabled = !spkEnabled;
-        const remoteAudio = document.getElementById("remoteAudio");
-        if (remoteAudio) remoteAudio.muted = !spkEnabled;
+        spkActive = !spkActive;
+        const audio = document.getElementById("remoteAudio");
+        if (audio) audio.muted = !spkActive;
         const btn = document.getElementById('spkBtn');
-        btn.className = spkEnabled ? 'btn btn-on' : 'btn btn-off';
-        btn.querySelector('span').innerText = spkEnabled ? '🔊' : '🔈';
-        btn.querySelectorAll('span')[1].innerText = spkEnabled ? 'ਸਪੀਕਰ ਚਾਲੂ' : 'ਸਪੀਕਰ ਬੰਦ';
+        btn.className = spkActive ? 'round-btn on' : 'round-btn off';
+        btn.querySelector('span').innerText = spkActive ? '🔊' : '🔈';
+        btn.querySelector('.label').innerText = spkActive ? 'ਸਪੀਕਰ ON' : 'ਸਪੀਕਰ OFF';
     }
-
-    peer.on('open', (id) => {
-        document.getElementById('my-id').innerText = id;
-    });
 </script>
 </body>
 </html>
